@@ -1,0 +1,264 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum AccountTypeName {
+  SAVING
+  LOAN
+}
+
+enum UserRole {
+  ADMIN
+  BANK_TELLER
+  CUSTOMER
+}
+
+enum AccountStatus {
+  ACTIVE
+  CLOSED
+  FROZEN
+}
+
+enum EMIStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+// ============================================================
+// CUSTOMER & AUTHENTICATION
+// ============================================================
+
+model CustomerDetail {
+  CustID        String   @id
+  FirstName     String
+  LastName      String
+  Address1      String
+  Address2      String?
+  City          String
+  State         String
+  Country       String
+  ZIPCode       String
+  EmailId       String   @unique
+  Phone         String?
+  Mobile        String
+  DOB           DateTime
+  MaritalStatus String?
+  CreatedAt     DateTime @default(now())
+  UpdatedAt     DateTime @updatedAt
+
+  // Relationships
+  Accounts CustomerAccount[]
+  KYC      KYCDetail?
+
+  // Authentication
+  User User?
+
+  @@index([LastName])
+  @@index([Mobile])
+  @@map("CustomerDetail")
+}
+
+model User {
+  UserID       String   @id @default(uuid())
+  Email        String   @unique
+  PasswordHash String
+  Role         UserRole @default(CUSTOMER)
+  CreatedAt    DateTime @default(now())
+  UpdatedAt    DateTime @updatedAt
+
+  CustID   String?         @unique
+  Customer CustomerDetail? @relation(fields: [CustID], references: [CustID], onDelete: Cascade)
+
+  @@map("User")
+}
+
+// ============================================================
+// KYC
+// ============================================================
+
+model KYCDetail {
+  KYCID              String    @id @default(uuid())
+  CustID             String    @unique
+  DocumentType       String
+  DocumentNumber     String    @unique
+  IssueDate          DateTime
+  ExpiryDate         DateTime?
+  VerificationStatus String    @default("PENDING")
+  CreatedAt          DateTime  @default(now())
+  UpdatedAt          DateTime  @updatedAt
+
+  Customer CustomerDetail @relation(fields: [CustID], references: [CustID], onDelete: Cascade)
+
+  @@map("KYCDetail")
+}
+
+// ============================================================
+// ACCOUNT TYPE
+// ============================================================
+
+model AccountType {
+  AccountTypeID Int             @id @default(autoincrement())
+  AccountType   AccountTypeName
+  AccSubType    String?
+
+  Accounts CustomerAccount[]
+
+  SavingAccounts SavingAccountDetail[]
+  LoanAccounts   LoanAccountDetail[]
+
+  @@map("AccountType")
+}
+
+// ============================================================
+// CUSTOMER ACCOUNTS (Polymorphic Junction)
+// ============================================================
+
+model CustomerAccount {
+  CustID        String
+  AcctNum       String        @id
+  AccountTypeID Int
+  Status        AccountStatus @default(ACTIVE)
+  CreatedAt     DateTime      @default(now())
+  UpdatedAt     DateTime      @updatedAt
+
+  Customer CustomerDetail @relation(fields: [CustID], references: [CustID], onDelete: Cascade)
+
+  AccountType AccountType @relation(fields: [AccountTypeID], references: [AccountTypeID])
+
+  SavingAccount SavingAccountDetail?
+  LoanAccount   LoanAccountDetail?
+
+  @@index([CustID])
+  @@index([AccountTypeID])
+  @@index([Status])
+  @@map("CustomerAccounts")
+}
+
+// ============================================================
+// SAVING ACCOUNT
+// ============================================================
+
+model SavingAccountDetail {
+  AcctNum             String   @id
+  SavingAccountTypeId Int
+  Balance             Decimal  @db.Decimal(18, 2)
+  TransferLimit       Decimal  @db.Decimal(18, 2)
+  BranchCode          String
+  IFSCCode            String   @default("JKBK0000001")
+  CreatedAt           DateTime @default(now())
+  UpdatedAt           DateTime @updatedAt
+
+  Account CustomerAccount @relation(fields: [AcctNum], references: [AcctNum], onDelete: Cascade)
+
+  SavingAccountType AccountType @relation(fields: [SavingAccountTypeId], references: [AccountTypeID])
+
+  Transactions SavingAccountTxnHistory[]
+
+  Cards CardDetail[]
+
+  @@index([SavingAccountTypeId])
+  @@index([BranchCode])
+  @@index([IFSCCode])
+  @@map("SavingAccountDetail")
+}
+
+// ============================================================
+// CARD DETAIL
+// ============================================================
+
+model CardDetail {
+  CardID         String   @id @default(uuid())
+  AcctNum        String
+  CardNumberHash String   @unique
+  CardType       String
+  ExpiryDate     DateTime
+  CardStatus     String
+
+  Account SavingAccountDetail @relation(fields: [AcctNum], references: [AcctNum], onDelete: Cascade)
+
+  @@index([AcctNum])
+  @@index([CardStatus])
+  @@map("CardDetail")
+}
+
+// ============================================================
+// SAVING ACCOUNT TRANSACTION HISTORY
+// ============================================================
+
+model SavingAccountTxnHistory {
+  TxnID          String   @id @default(uuid())
+  TxnDate        DateTime @default(now())
+  AcctNum        String
+  TxnDetail      String?
+  WithdrawAmount Decimal  @default(0) @db.Decimal(18, 2)
+  DepositAmount  Decimal  @default(0) @db.Decimal(18, 2)
+  Balance        Decimal  @db.Decimal(18, 2)
+
+  Account SavingAccountDetail @relation(fields: [AcctNum], references: [AcctNum], onDelete: Cascade)
+
+  @@index([AcctNum])
+  @@index([TxnDate])
+  @@map("SavingAccountTxnHistory")
+}
+
+// ============================================================
+// LOAN ACCOUNT
+// ============================================================
+
+model LoanAccountDetail {
+  AcctNum           String   @id
+  BalanceAmount     Decimal  @db.Decimal(18, 2)
+  BranchCode        String
+  IFSCCode          String   @default("JKBK0000001")
+  RateOfInterest    Decimal  @db.Decimal(5, 2)
+  LoanDuration      Int
+  TotalLoanAmount   Decimal  @db.Decimal(18, 2)
+  LoanAccountTypeId Int
+  CreatedAt         DateTime @default(now())
+  UpdatedAt         DateTime @updatedAt
+
+  Account CustomerAccount @relation(fields: [AcctNum], references: [AcctNum], onDelete: Cascade)
+
+  LoanAccountType AccountType @relation(fields: [LoanAccountTypeId], references: [AccountTypeID])
+
+  EMIs LoanEMIDetail[]
+
+  @@index([LoanAccountTypeId])
+  @@index([BranchCode])
+  @@index([IFSCCode])
+  @@map("LoanAccountDetail")
+}
+
+// ============================================================
+// LOAN EMI DETAIL
+// ============================================================
+
+model LoanEMIDetail {
+  EMIID            String    @id @default(uuid())
+  AcctNum          String
+  EMIDate          DateTime
+  EMIAmount        Decimal   @db.Decimal(18, 2)
+  EMIStatus        EMIStatus @default(PENDING)
+  EMIReminder      DateTime?
+  RemainingBalance Decimal   @db.Decimal(18, 2)
+
+  LoanAccount LoanAccountDetail @relation(fields: [AcctNum], references: [AcctNum], onDelete: Cascade)
+
+  @@index([AcctNum])
+  @@index([EMIDate])
+  @@index([EMIStatus])
+  @@map("LoanEMIDetail")
+}

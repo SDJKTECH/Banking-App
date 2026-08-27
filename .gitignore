@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# Environment variables & secrets
+.env
+.env.*
+*/.env
+*/.env.*
+**/.env
+**/.env.*
+
+# Build artifacts
+dist/
+build/
+*/dist/
+*/build/
+**/dist/
+**/build/
+
+# Zip Archives
+*.zip
+Backend.zip
+Frontend.zip
+
+# Editor & AI Tooling Caches
+.vscode/
+*/.vscode/
+**/.vscode/
+.claude/
+.windsurf/
+*/.claude/
+*/.windsurf/
+**/.claude/
+**/.windsurf/
+
+# Logs & System Files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
