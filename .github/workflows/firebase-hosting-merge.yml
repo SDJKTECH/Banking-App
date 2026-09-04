@@ -19,3 +19,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BANKING_APP_A36E8 }}
           channelId: live
           projectId: banking-app-a36e8
+          entryPoint: ./Frontend
