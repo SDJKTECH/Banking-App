@@ -12,7 +12,12 @@ import { logger } from "./src/lib/logger";
 const app = express();
 
 // Cross-Origin Resource Sharing
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 // Parse incoming JSON payloads
 app.use(express.json());
