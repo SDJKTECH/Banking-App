@@ -16,7 +16,7 @@ jobs:
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BANKING_APP_A36E8 }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BANKING_APP_383CF }}
           channelId: live
-          projectId: banking-app-a36e8
+          projectId: banking-app-383cf
           entryPoint: ./Frontend
